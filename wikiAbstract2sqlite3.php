@@ -16,7 +16,7 @@ $db->exec('begin');
 $file = fopen($WIKI_XML_FILE, 'r');
 while($line = fgets($file)){
     if(preg_match('/^<doc>$/', $line) === 1){
-        $tmp = '';
+        $tmp[] = '';
         $tmpLinks = array();
     }else if(preg_match('/<title>Wikipedia: (.+)<\/title>/', $line, $m) === 1){
         $tmp['title'] = $m[1];
