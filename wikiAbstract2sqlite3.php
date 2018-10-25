@@ -10,8 +10,8 @@ if(file_exists($SQLITE_FILE)){
 }
 
 $db = new SQLite3($SQLITE_FILE);
-$db->exec("create table ${SQLITE_TABLE_NAME}(title, url, abstract, link_anchor, link_url)");
-$db->exec('begin');
+$db->exec("CREATE TABLE ${SQLITE_TABLE_NAME}(title TEXT, url TEXT, abstract TEXT, link_anchor TEXT, link_url TEXT)");
+$db->exec('BEGIN');
 
 $file = fopen($WIKI_XML_FILE, 'r');
 while($line = fgets($file)){
@@ -35,10 +35,6 @@ while($line = fgets($file)){
         $link['link'] = $m[1];
         array_push($tmpLinks, $link);
     }else if(preg_match('/^<\/doc>$/', $line) === 1){
-        $title = escapeQuote($tmp['title']);
-        $url = escapeQuote($tmp['url']);
-        $abstract = escapeQuote($tmp['abstract']);
-
         $link_anchor = '';
         $link_url = '';
         for($i = 0; $i < count($tmpLinks); $i++){
@@ -47,18 +43,18 @@ while($line = fgets($file)){
         }
         $link_anchor = substr($link_anchor, 0, strlen($link_anchor) - 1);
         $link_url = substr($link_url, 0, strlen($link_url) - 1);
-        $link_anchor = escapeQuote($link_anchor);
-        $link_url = escapeQuote($link_url);
 
-        $sql = "insert into ${SQLITE_TABLE_NAME} values('${title}', '${url}', '${abstract}', '${link_anchor}', '${link_url}')";
-        $db->exec($sql);
+        $stmt = $db->prepare("INSERT INTO ${SQLITE_TABLE_NAME} VALUES (:title, :url, :abstract, :link_anchor, :link_url)");
+        $stmt->bindValue(':title', $tmp['title'], SQLITE3_TEXT);
+        $stmt->bindValue(':url', $tmp['url'], SQLITE3_TEXT);
+        $stmt->bindValue(':abstract', $tmp['abstract'], SQLITE3_TEXT);
+        $stmt->bindValue(':link_anchor', $link_anchor, SQLITE3_TEXT);
+        $stmt->bindValue(':link_url', $link_url, SQLITE3_TEXT);
+        $stmt->execute();
     }
 }
 fclose($file);
 
-$db->exec('commit');
+$db->exec('COMMIT');
 $db->close();
 
-function escapeQuote($str){
-    return str_replace("'", "''", $str);
-}
