@@ -16,8 +16,8 @@ $db->exec('BEGIN');
 $file = fopen($WIKI_XML_FILE, 'r');
 while($line = fgets($file)){
     if(preg_match('/^<doc>$/', $line) === 1){
-        $tmp[] = '';
-        $tmpLinks = array();
+        $tmp = [];
+        $tmpLinks = [];
     }else if(preg_match('/<title>Wikipedia: (.+)<\/title>/', $line, $m) === 1){
         $tmp['title'] = $m[1];
     }else if(preg_match('/<url>(.+)<\/url>/', $line, $m) === 1){
@@ -27,22 +27,20 @@ while($line = fgets($file)){
     }else if(preg_match('/<abstract \/>/', $line) === 1){
         $tmp['abstract'] = '';
     }else if(preg_match('/<sublink linktype="nav"><anchor>(.+)<\/anchor><link>(.+)<\/link><\/sublink>/', $line, $m) === 1){
-        $link['anchor'] = $m[1];
-        $link['link'] = $m[2];
-        array_push($tmpLinks, $link);
+        $tmpLinks['anchor'][] = $m[1];
+        $tmpLinks['link'][] = $m[2];
     }else if(preg_match('/<sublink linktype="nav"><anchor \/><link>(.+)<\/link><\/sublink>/', $line, $m) === 1){
-        $link['anchor'] = '';
-        $link['link'] = $m[1];
-        array_push($tmpLinks, $link);
+        $tmpLinks['anchor'][] = '';
+        $tmpLinks['link'][] = $m[1];
     }else if(preg_match('/^<\/doc>$/', $line) === 1){
         $link_anchor = '';
-        $link_url = '';
-        for($i = 0; $i < count($tmpLinks); $i++){
-            $link_anchor .= str_replace(',', '\\,', $tmpLinks[$i]['anchor']) . ',';
-            $link_url .= str_replace(',', '\\,', $tmpLinks[$i]['link']) . ',';
+        if(count($tmpLinks['anchor']) > 0){
+            $link_anchor = implode(',', $tmpLinks['anchor']);
         }
-        $link_anchor = substr($link_anchor, 0, strlen($link_anchor) - 1);
-        $link_url = substr($link_url, 0, strlen($link_url) - 1);
+        $link_url = '';
+        if(count($tmpLinks['link']) > 0){
+            $link_url = implode(',', $tmpLinks['link']);
+        }
 
         $stmt = $db->prepare("INSERT INTO ${SQLITE_TABLE_NAME} VALUES (:title, :url, :abstract, :link_anchor, :link_url)");
         $stmt->bindValue(':title', $tmp['title'], SQLITE3_TEXT);
